@@ -25,24 +25,13 @@ class Layer2ThemePlugin:
         self.themes = self.theme_collection.mapThemes()
 
     def initGui(self):
-        # For Vector Layers
-        action_vector = QAction("Append layer to theme/s", self.iface.mainWindow())
-        # Use StayOpenMenu instead of QMenu.
-        menu_vector = StayOpenMenu()
-        # Rebuild the menu each time it's about to show.
-        menu_vector.aboutToShow.connect(lambda: self.updateMenu(menu_vector))
-        # Set to pop up on hover.
-        action_vector.setMenu(menu_vector)
-        self.iface.addCustomActionForLayerType(action_vector, None, QgsMapLayer.VectorLayer, True)
-        self.actions.append(action_vector)
-
-        # For Raster Layers (repeat same process)
-        action_raster = QAction("Append layer to theme/s", self.iface.mainWindow())
-        menu_raster = StayOpenMenu()
-        menu_raster.aboutToShow.connect(lambda: self.updateMenu(menu_raster))
-        action_raster.setMenu(menu_raster)
-        self.iface.addCustomActionForLayerType(action_raster, None, QgsMapLayer.RasterLayer, True)
-        self.actions.append(action_raster)
+        for layer_type in QgsMapLayer.LayerType:
+            action = QAction("Append layer to theme/s", self.iface.mainWindow())
+            menu = StayOpenMenu()
+            menu.aboutToShow.connect(lambda m=menu: self.updateMenu(m))
+            action.setMenu(menu)
+            self.iface.addCustomActionForLayerType(action, None, layer_type, True)
+            self.actions.append(action)
 
     def updateMenu(self, menu):
         menu.clear()
