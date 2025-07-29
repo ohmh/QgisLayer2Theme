@@ -53,11 +53,11 @@ class Layer2ThemePlugin:
         menu.addSeparator()
 
         check_all = QAction("Check all", menu)
-        check_all.triggered.connect(lambda v=True: self.setAllThemes(visible=v))
+        check_all.triggered.connect(lambda _: self.setAllThemes(visible=True))
         menu.addAction(check_all)
 
         uncheck_all = QAction("Uncheck all", menu)
-        uncheck_all.triggered.connect(lambda v=False: self.setAllThemes(visible=v))
+        uncheck_all.triggered.connect(lambda _: self.setAllThemes(visible= False))
         menu.addAction(uncheck_all)
 
     def toggleThemeVisibility(self, theme_name, visible):
