@@ -21,7 +21,7 @@ class Layer2ThemePlugin:
         self.actions = []
         self.project = QgsProject.instance()
         self.layers = self.project.mapLayers()
-        self.layer = iface.activeLayer()
+        #self.layer = iface.activeLayer()                   #-> The plugin misbehaves when refering to active layer that is defined in the init method, so active layer is introduced updateMenu method.
         self.theme_collection = self.project.mapThemeCollection()
         self.themes = self.theme_collection.mapThemes()
 
@@ -36,7 +36,8 @@ class Layer2ThemePlugin:
 
     def updateMenu(self, menu):
         menu.clear()
-        layer = self.layer
+        #layer = self.layer
+        layer = iface.activeLayer()
         if not layer:
             return
 
@@ -47,24 +48,22 @@ class Layer2ThemePlugin:
             act.setCheckable(True)
             visible_ids = self.theme_collection.mapThemeVisibleLayerIds(theme)
             act.setChecked(layer.id() in visible_ids)
-            act.toggled.connect(lambda checked, t=theme: self.toggleThemeVisibility(t, visible=checked))
+            act.toggled.connect(lambda checked, t=theme, lyr=layer: self.toggleThemeVisibility(theme_name=t, layer=lyr, visible=checked))
             menu.addAction(act)
 
         menu.addSeparator()
 
         check_all = QAction("Check all", menu)
-        check_all.triggered.connect(lambda _: self.setAllThemes(visible=True))
+        check_all.triggered.connect(lambda _, lyr=layer: self.setAllThemes(layer=lyr, visible=True))
         menu.addAction(check_all)
 
         uncheck_all = QAction("Uncheck all", menu)
-        uncheck_all.triggered.connect(lambda _: self.setAllThemes(visible= False))
+        uncheck_all.triggered.connect(lambda _, lyr=layer: self.setAllThemes(layer=lyr, visible=False))
         menu.addAction(uncheck_all)
 
-    def toggleThemeVisibility(self, theme_name, visible):
-        iface.messageBar().pushMessage("Visibility", str(visible ), level=Qgis.Info)   
-        layer = self.layer
+    def toggleThemeVisibility(self, theme_name, layer, visible):  
         theme_collection = self.theme_collection
-        layer_record = QgsMapThemeCollection.MapThemeLayerRecord(self.layer)
+        layer_record = QgsMapThemeCollection.MapThemeLayerRecord(layer)
         theme_record = theme_collection.mapThemeState(theme_name)
         current_ids = list(theme_collection.mapThemeVisibleLayerIds(theme_name))
         if visible and layer.id() not in current_ids:
@@ -81,12 +80,11 @@ class Layer2ThemePlugin:
             iface.mapCanvas().refresh()  # Refresh the map canvas to reflect changes
             # iface.mapCanvas().refreshAllLayers()
             current_ids.remove(layer.id())
-        #theme_collection.setMapThemeVisibleLayerIds(theme_name, current_ids) # There is no setMapThemeVisibleLayer method in QGIS API, and this is a method that returns a list so we can't equate it to a list to resolve the issue
 
 
-    def setAllThemes(self, visible):
+    def setAllThemes(self, layer, visible):
         for theme in self.themes:
-            self.toggleThemeVisibility(theme_name=theme, visible=visible)
+            self.toggleThemeVisibility(theme_name=theme, layer=layer, visible=visible)
 
     def unload(self):
         # Remove the custom actions when the plugin is unloaded.
