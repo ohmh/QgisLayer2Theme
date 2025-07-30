@@ -1,3 +1,26 @@
+# -*- coding: utf-8 -*-
+"""
+/***************************************************************************
+ Layer2ThemePlugin
+                                 A QGIS plugin
+ This plugin allows users to append layers to existing themes in QGIS.
+                             -------------------
+        begin                : 2025-07-30
+        git sha              : $Format:%H$
+        copyright            : (C) 2025 by Osama Heba
+        email                : o.h.heba@gmail.com
+ ***************************************************************************/
+
+/***************************************************************************
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ ***************************************************************************/
+"""
+
 from qgis.PyQt.QtWidgets import QAction, QMenu
 from qgis.PyQt.QtCore import QEvent
 from qgis.PyQt.QtGui import QCursor
@@ -17,13 +40,9 @@ class StayOpenMenu(QMenu):
 
 class Layer2ThemePlugin:
     def __init__(self, iface):
-        self.iface = iface
-        self.actions = []
-        self.project = QgsProject.instance()
-        self.layers = self.project.mapLayers()
-        #self.layer = iface.activeLayer()                   #-> The plugin misbehaves when refering to active layer that is defined in the init method, so active layer is introduced updateMenu method.
-        self.theme_collection = self.project.mapThemeCollection()
-        self.themes = self.theme_collection.mapThemes()
+        self.iface =  iface
+        self.actions =  []
+
 
     def initGui(self):
         for layer_type in QgsMapLayer.LayerType:
@@ -36,14 +55,19 @@ class Layer2ThemePlugin:
 
     def updateMenu(self, menu):
         menu.clear()
-        #layer = self.layer
-        layer = iface.activeLayer()
+
+        self.project =                  QgsProject.instance()
+        self.theme_collection =         self.project.mapThemeCollection()
+        self.themes =                   self.theme_collection.mapThemes()
+        layer =                         iface.activeLayer()
+        #self.layers =                  self.project.mapLayers()                        # To be removed, not used in the plugin.
+        #self.root =                    self.project.layerTreeRoot()                    #These items are not used in the plugin, but are kept for further development.
+        #self.model =                   iface.layerTreeView().layerTreeModel()          #These items are not used in the plugin, but are kept for further development.
         if not layer:
             return
 
-        themes = self.themes
         # Create a checkable action per theme.
-        for theme in themes:
+        for theme in self.themes:
             act = QAction(theme, menu)
             act.setCheckable(True)
             visible_ids = self.theme_collection.mapThemeVisibleLayerIds(theme)
@@ -69,22 +93,22 @@ class Layer2ThemePlugin:
         if visible and layer.id() not in current_ids:
             theme_record.addLayerRecord(layer_record)
             theme_collection.update(theme_name, theme_record)
-            theme_collection.mapThemesChanged
-            iface.mapCanvas().refresh()  # Refresh the map canvas to reflect changes
-            # iface.mapCanvas().refreshAllLayers()
             current_ids.append(layer.id())
         elif not visible and layer.id() in current_ids:
             theme_record.removeLayerRecord(layer)
             theme_collection.update(theme_name, theme_record)
-            theme_collection.mapThemesChanged
-            iface.mapCanvas().refresh()  # Refresh the map canvas to reflect changes
-            # iface.mapCanvas().refreshAllLayers()
             current_ids.remove(layer.id())
+        
+        iface.mapCanvas().refresh()  # Refresh the map canvas to reflect changes
+        # iface.mapCanvas().refreshAllLayers()
 
 
     def setAllThemes(self, layer, visible):
         for theme in self.themes:
             self.toggleThemeVisibility(theme_name=theme, layer=layer, visible=visible)
+        #self.theme_collection.applyTheme(name=*active theme*, root=root, model=model)           # This should make changes update automatically to active theme, I just couldn't find away to grab the active theme name.
+        '''I difintly need to apply this eleswhere, toggleThemeVisibility is a candidate\
+            but it will repeat applying the theme for as many themes there are.'''  
 
     def unload(self):
         # Remove the custom actions when the plugin is unloaded.

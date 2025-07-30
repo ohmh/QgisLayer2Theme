@@ -1,7 +1,12 @@
 [general]
-name=AddLayer2Theme
-description=This plugin adds allowes adding layers to existing themes by right clicking on the layer of interest and asigning it to the target theme/s.
+name=Layer2Theme
+description=This plugin adds allowes updating layers visibility in existing themes by right clicking on the layer of interest and asigning it to the target theme/s.
 version=1.0
-qgisMinimumVersion=3.0
+qgisMinimumVersion=3.16
 author=Osama Heba
 email=o.h.heba@gmail.com
+tags=QGIS,Themes,Layers,Automation
+repository=https://github.com/ohmh/QgisLayer2Theme
+tracker=https://github.com/ohmh/QgisLayer2Theme/issues
+experimental=False
+deprecated=False
