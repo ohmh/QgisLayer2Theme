@@ -9,7 +9,11 @@ Layer2Theme is a Qgis plugin facilitates updating layer visibility in existing t
 - Provides the option to check or uncheck all a layer from available themes.
 - Only uses Qgis standard libraries.
 
+<<<<<<< HEAD
 <img src="https://github.com/ohmh/QgisLayer2Theme/blob/main/img/Snapshot.png?raw=true" alt="Snapshot" height="500">
+=======
+<img src="https://github.com/ohmh/QgisLayer2Theme/blob/main/img/Snapshot.png.png?raw=true" alt="Snapshot" height="500">
+>>>>>>> d1e37e55692d64e9d5c68788fcf82e547ed9b97b
 
 ## Known issues and limitations
 - If active theme is modified it need to be toggled on and off for effect to take place.
