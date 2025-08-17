@@ -1,11 +1,13 @@
 [general]
 name=Layer2Theme
-description=This plugin adds allowes updating layers visibility in existing themes by right clicking on the layer of interest and asigning it to the target theme/s.
+description=A productivity theme management plugin that significantly ease the process of updating existing themes.
+about=This plugin adds allowes updating layers visibility in existing themes by right clicking on the layer of interest and asigning it to the target theme/s. Optionins like check\uncheck all are also available.
 version=1.0
 qgisMinimumVersion=3.16
 author=Osama Heba
 email=o.h.heba@gmail.com
-tags=QGIS,Themes,Layers,Automation
+tags=QGIS,Themes,Layers,Cartograpgy,Automation,Productivity
+homepage=https://plugins.qgis.org/plugins/QgisLayer2Theme
 repository=https://github.com/ohmh/QgisLayer2Theme
 tracker=https://github.com/ohmh/QgisLayer2Theme/issues
 experimental=False

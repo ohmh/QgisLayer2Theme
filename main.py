@@ -21,97 +21,116 @@
  ***************************************************************************/
 """
 
+
+from functools import partial
 from qgis.PyQt.QtWidgets import QAction, QMenu
-from qgis.PyQt.QtCore import QEvent
-from qgis.PyQt.QtGui import QCursor
-from qgis.core import Qgis, QgsProject, QgsMapLayer, QgsMapThemeCollection
+from qgis.core import QgsProject, QgsMapLayer, QgsMapThemeCollection
 from qgis.utils import iface
 
-# Custom QMenu that stays open when clicking checkable actions.
+
 class StayOpenMenu(QMenu):
+    """QMenu that stays open when clicking checkable actions."""
     def mouseReleaseEvent(self, event):
         action = self.actionAt(event.pos())
         if action and action.isCheckable():
-            # Toggle the action manually without closing the menu.
             action.toggle()
             event.accept()
         else:
             super().mouseReleaseEvent(event)
 
+
 class Layer2ThemePlugin:
     def __init__(self, iface):
-        self.iface =  iface
-        self.actions =  []
-
+        self.iface = iface
+        self.actions = []
 
     def initGui(self):
+        """Create context menu actions for all layer types."""
         for layer_type in QgsMapLayer.LayerType:
-            action = QAction("Append layer to theme/s", self.iface.mainWindow())
+            action = QAction("Toggle layer visibility in theme(s)", self.iface.mainWindow())
             menu = StayOpenMenu()
-            menu.aboutToShow.connect(lambda m=menu: self.updateMenu(m))
+            menu.aboutToShow.connect(partial(self.updateMenu, menu))
             action.setMenu(menu)
             self.iface.addCustomActionForLayerType(action, None, layer_type, True)
             self.actions.append(action)
 
+    def unload(self):
+        """Remove actions when plugin is unloaded."""
+        for action in self.actions:
+            self.iface.removeCustomActionForLayerType(action)
+        self.actions.clear()
+
+    # --------------------
+    # Helpers
+    # --------------------
+    def themeCollection(self):
+        return QgsProject.instance().mapThemeCollection()
+
+    # --------------------
+    # Menu handling
+    # --------------------
     def updateMenu(self, menu):
         menu.clear()
+        theme_collection = self.themeCollection()
+        themes = theme_collection.mapThemes() if theme_collection else []
+        layer = iface.activeLayer()
 
-        self.project =                  QgsProject.instance()
-        self.theme_collection =         self.project.mapThemeCollection()
-        self.themes =                   self.theme_collection.mapThemes()
-        layer =                         iface.activeLayer()
-        #self.layers =                  self.project.mapLayers()                        # To be removed, not used in the plugin.
-        #self.root =                    self.project.layerTreeRoot()                    #These items are not used in the plugin, but are kept for further development.
-        #self.model =                   iface.layerTreeView().layerTreeModel()          #These items are not used in the plugin, but are kept for further development.
         if not layer:
+            msg = QAction("No active layer selected", menu)
+            msg.setEnabled(False)
+            menu.addAction(msg)
             return
 
-        # Create a checkable action per theme.
-        for theme in self.themes:
-            act = QAction(theme, menu)
-            act.setCheckable(True)
-            visible_ids = self.theme_collection.mapThemeVisibleLayerIds(theme)
+        if not themes:
+            msg = QAction("Create a theme to activate", menu)
+            msg.setEnabled(False)
+            menu.addAction(msg)
+            return
+
+        # Theme toggles
+        for theme in themes:
+            act = QAction(theme, menu, checkable=True)
+            visible_ids = theme_collection.mapThemeVisibleLayerIds(theme)
             act.setChecked(layer.id() in visible_ids)
-            act.toggled.connect(lambda checked, t=theme, lyr=layer: self.toggleThemeVisibility(theme_name=t, layer=lyr, visible=checked))
+            act.toggled.connect(partial(self.toggleThemeVisibility, theme, layer))
             menu.addAction(act)
 
         menu.addSeparator()
 
+        # Batch toggles
         check_all = QAction("Check all", menu)
-        check_all.triggered.connect(lambda _, lyr=layer: self.setAllThemes(layer=lyr, visible=True))
+        check_all.triggered.connect(partial(self.setAllThemes, layer, True))
         menu.addAction(check_all)
 
         uncheck_all = QAction("Uncheck all", menu)
-        uncheck_all.triggered.connect(lambda _, lyr=layer: self.setAllThemes(layer=lyr, visible=False))
+        uncheck_all.triggered.connect(partial(self.setAllThemes, layer, False))
         menu.addAction(uncheck_all)
 
-    def toggleThemeVisibility(self, theme_name, layer, visible):  
-        theme_collection = self.theme_collection
-        layer_record = QgsMapThemeCollection.MapThemeLayerRecord(layer)
-        theme_record = theme_collection.mapThemeState(theme_name)
-        current_ids = list(theme_collection.mapThemeVisibleLayerIds(theme_name))
-        if visible and layer.id() not in current_ids:
-            theme_record.addLayerRecord(layer_record)
-            theme_collection.update(theme_name, theme_record)
-            current_ids.append(layer.id())
-        elif not visible and layer.id() in current_ids:
-            theme_record.removeLayerRecord(layer)
-            theme_collection.update(theme_name, theme_record)
-            current_ids.remove(layer.id())
-        
-        iface.mapCanvas().refresh()  # Refresh the map canvas to reflect changes
-        # iface.mapCanvas().refreshAllLayers()
+    # --------------------
+    # Theme operations
+    # --------------------
+    def toggleThemeVisibility(self, theme_name, layer, visible):
+        theme_collection = self.themeCollection()
+        if not theme_collection:
+            return
 
+        theme_record = theme_collection.mapThemeState(theme_name)
+        layer_record = QgsMapThemeCollection.MapThemeLayerRecord(layer)
+
+        if visible:
+            theme_record.addLayerRecord(layer_record)
+        else:
+            theme_record.removeLayerRecord(layer)
+
+        theme_collection.update(theme_name, theme_record)
+        iface.mapCanvas().refresh()
 
     def setAllThemes(self, layer, visible):
-        for theme in self.themes:
-            self.toggleThemeVisibility(theme_name=theme, layer=layer, visible=visible)
-        #self.theme_collection.applyTheme(name=*active theme*, root=root, model=model)           # This should make changes update automatically to active theme, I just couldn't find away to grab the active theme name.
-        '''I difintly need to apply this eleswhere, toggleThemeVisibility is a candidate\
-            but it will repeat applying the theme for as many themes there are.'''  
+        theme_collection = self.themeCollection()
+        if not theme_collection:
+            return
 
-    def unload(self):
-        # Remove the custom actions when the plugin is unloaded.
-        for action in self.actions:
-            self.iface.removeCustomActionForLayerType(action)
-        self.actions = []
+        for theme in theme_collection.mapThemes():
+            self.toggleThemeVisibility(theme, layer, visible)
+
+        iface.mapCanvas().refresh()  # Refresh once at the end
